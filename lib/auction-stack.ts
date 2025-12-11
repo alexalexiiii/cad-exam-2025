@@ -47,8 +47,20 @@ export class AuctionStack extends cdk.Stack {
 
     // Integration infrastructure
 
+    // SQS Queues and SNS Topic
+    // dlq for messages that can't be processed by lambdaA
+    const dlq = new sqs.Queue(this, "AuctionDLQ", {
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      retentionPeriod: cdk.Duration.days(14),
+    });
+
     const queue = new sqs.Queue(this, "AuctionQ", {
       receiveMessageWaitTime: cdk.Duration.seconds(10),
+      // retreat to DLQ after 1 failed processing attempt
+      deadLetterQueue: {
+        maxReceiveCount: 1,
+        queue: dlq,
+      },
     });
 
     const topic = new sns.Topic(this, "AuctionTopic", {
@@ -104,16 +116,18 @@ export class AuctionStack extends cdk.Stack {
 
     // Subscriptions
 
-    topic.addSubscription(
-      new subs.SqsSubscription(queue, {
-        rawMessageDelivery: true,
-      })
-    );
-
     lambdaA.addEventSource(
       new events.SqsEventSource(queue, {
         batchSize: 5,
         maxBatchingWindow: cdk.Duration.seconds(6),
+      })
+    );
+
+    
+    // route messages that end up in the DLQ to lambdaB for logging
+    lambdaB.addEventSource(
+      new events.SqsEventSource(dlq, {
+        batchSize: 1,
       })
     );
 

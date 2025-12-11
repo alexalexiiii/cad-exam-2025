@@ -11,12 +11,30 @@ export const handler: SQSHandler = async (event) => {
   for (const record of event.Records) {
     const auctionItem = JSON.parse(record.body) as AuctionItem;
     const messageAttributes = JSON.parse(record.body).MessageAttributes || {};
-    const auctionType = messageAttributes.auctionType?.Value || "Public";
-    
+    const auctionType = messageAttributes.auctionType?.Value;
+
+    // Only process messages that explicitly set auctionType to a known value
+    const allowed = new Set(["Public", "Private", "Online"]);
+    if (!auctionType || !allowed.has(auctionType)) {
+      console.log(`Ignoring add-stock-item message. auctionType='${auctionType ?? "<missing>"}'`);
+      continue;
+    }
+
+    // If marketValue is less than minimumPrice, throw so message will be moved to DLQ
+    if (
+      typeof auctionItem.marketValue === "number" &&
+      typeof auctionItem.minimumPrice === "number" &&
+      auctionItem.marketValue < auctionItem.minimumPrice
+    ) {
+      console.error("Rejecting faulty add-stock-item: marketValue < minimumPrice", JSON.stringify(auctionItem));
+      throw new Error("marketValue is less than minimumPrice");
+    }
+
     const dbItem: DBAuctionItem = {
       ...auctionItem,
       auctionType: auctionType,
-    }
+    };
+
     await ddbDocClient.send(
       new PutCommand({
         TableName: process.env.TABLE_NAME,
