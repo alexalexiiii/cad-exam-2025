@@ -20,8 +20,9 @@ export const handler: SQSHandler = async (event) => {
       continue;
     }
 
+    // https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html
     // If marketValue is less than minimumPrice, throw so message will be moved to DLQ
-    // stringify auctionItem for logging
+    // stringify auctionItem for cloudwatch logging
     if (
       typeof auctionItem.marketValue === "number" &&
       typeof auctionItem.minimumPrice === "number" &&

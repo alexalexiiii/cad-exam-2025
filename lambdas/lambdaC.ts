@@ -36,6 +36,7 @@ export const handler = async (event: SNSEvent, _ctx: Context) => {
 
     // use a try catch to log any DynamoDB errors
     // and re-throw to indicate failure to lambd;a 
+    // https://docs.aws.amazon.com/lambda/latest/dg/nodejs-handler.html
     try {
       await ddbDocClient.send(
         new PutCommand({
@@ -65,3 +66,4 @@ function createDDbDocClient() {
   const translateConfig = { marshallOptions, unmarshallOptions };
   return DynamoDBDocumentClient.from(ddbClient, translateConfig);
 }
+
