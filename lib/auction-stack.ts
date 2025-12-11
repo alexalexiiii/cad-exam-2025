@@ -47,7 +47,10 @@ export class AuctionStack extends cdk.Stack {
 
     // Integration infrastructure
 
+    // added comments to reflect changes
+
     // SQS Queues and SNS Topic
+
     // dlq for messages that can't be processed by lambdaA
     const dlq = new sqs.Queue(this, "AuctionDLQ", {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
@@ -111,6 +114,8 @@ export class AuctionStack extends cdk.Stack {
       memorySize: 128,
       environment: {
         REGION: "eu-west-1",
+        // bids table name for lambdaC
+        BIDS_TABLE: bids.tableName,
       },
     });
 
@@ -131,12 +136,16 @@ export class AuctionStack extends cdk.Stack {
       })
     );
 
+    // Subscribe topic directly to lambdaC so bid messages (no attributes) are processed
+    topic.addSubscription(new subs.LambdaSubscription(lambdaC));
+  
     // Permissions
 
     auctioStock.grantReadWriteData(lambdaA);
+    // Allow lambdaC to write bids
+    bids.grantWriteData(lambdaC);
     
     // Output
-
     new cdk.CfnOutput(this, "SNS Topic ARN", {
       value: topic.topicArn,
     });
