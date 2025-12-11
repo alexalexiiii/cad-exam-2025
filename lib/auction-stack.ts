@@ -71,6 +71,8 @@ export class AuctionStack extends cdk.Stack {
     });
 
     // updated, with filter policy
+    // https://docs.aws.amazon.com/sns/latest/dg/sns-message-filtering.html
+    // https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_sns_subscriptions.SqsSubscription.html
     // application processing add stock item messages whos item attribute
     // is public, private or online
     topic.addSubscription(
@@ -79,10 +81,11 @@ export class AuctionStack extends cdk.Stack {
       filterPolicy: {
         auctionType: sns.SubscriptionFilter.stringFilter({
         allowlist: ["Public", "Private", "Online"],
-        }),
+        }), 
       },
       })
     );
+
 
     // Lambda functions
 
@@ -128,6 +131,18 @@ export class AuctionStack extends cdk.Stack {
       })
     );
 
+       // route topic directly to lambdaC so bid messages are processed
+    topic.addSubscription(
+      new subs.LambdaSubscription(lambdaC, {
+        filterPolicy: {
+          // only messages that dont have a valid auctionType
+          auctionType: sns.SubscriptionFilter.stringFilter({
+            denylist: ["Public", "Private", "Online"],
+          }),
+        },
+      })
+    );
+  
     
     // route messages that end up in the DLQ to lambdaB for logging
     lambdaB.addEventSource(
@@ -136,9 +151,7 @@ export class AuctionStack extends cdk.Stack {
       })
     );
 
-    // Subscribe topic directly to lambdaC so bid messages (no attributes) are processed
-    topic.addSubscription(new subs.LambdaSubscription(lambdaC));
-  
+ 
     // Permissions
 
     auctioStock.grantReadWriteData(lambdaA);

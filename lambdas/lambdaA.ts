@@ -21,6 +21,7 @@ export const handler: SQSHandler = async (event) => {
     }
 
     // If marketValue is less than minimumPrice, throw so message will be moved to DLQ
+    // stringify auctionItem for logging
     if (
       typeof auctionItem.marketValue === "number" &&
       typeof auctionItem.minimumPrice === "number" &&

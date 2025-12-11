@@ -9,6 +9,7 @@ const ddbDocClient = createDDbDocClient();
 export const handler = async (event: SNSEvent, _ctx: Context) => {
   console.log("Event ", JSON.stringify(event));
 
+
   // for each SNS record (should be only one in this setup)
   for (const record of event.Records) {
     const message = record.Sns?.Message || record.Sns?.Message;
@@ -20,6 +21,13 @@ export const handler = async (event: SNSEvent, _ctx: Context) => {
       bid = JSON.parse(message);
     } catch (err) {
       console.error("Failed to parse bid message", message);
+      continue;
+    }
+
+    // https://docs.aws.amazon.com/lambda/latest/dg/with-sns.html
+    // added chekc here to filter out non-bid messages
+    if (bid.messageType !== "bid") {
+      console.log("Ignoring non-bid message", JSON.stringify(bid));
       continue;
     }
 
