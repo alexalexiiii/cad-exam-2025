@@ -55,6 +55,20 @@ export class AuctionStack extends cdk.Stack {
       displayName: "New Image topic",
     });
 
+    // updated, with filter policy
+    // application processing add stock item messages whos item attribute
+    // is public, private or online
+    topic.addSubscription(
+      new subs.SqsSubscription(queue, {
+      rawMessageDelivery: true,
+      filterPolicy: {
+        auctionType: sns.SubscriptionFilter.stringFilter({
+        allowlist: ["Public", "Private", "Online"],
+        }),
+      },
+      })
+    );
+
     // Lambda functions
 
     const lambdaA = new lambdanode.NodejsFunction(this, "lambdaA", {
