@@ -10,9 +10,12 @@ export const handler: SQSHandler = async (event) => {
 
   for (const record of event.Records) {
     const auctionItem = JSON.parse(record.body) as AuctionItem;
+    const messageAttributes = JSON.parse(record.body).MessageAttributes || {};
+    const auctionType = messageAttributes.auctionType?.Value || "Public";
+    
     const dbItem: DBAuctionItem = {
       ...auctionItem,
-      auctionType: "Public",  // Hardcoded for now.
+      auctionType: auctionType,
     }
     await ddbDocClient.send(
       new PutCommand({
